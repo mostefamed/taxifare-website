@@ -61,7 +61,7 @@ def initialize_map(center, zoom):
 
 
 TAXI_FARE_API_URL = 'https://taxifare-mostefa-bbkf4aq3na-ew.a.run.app'
-GEO_LOCALISATION = "https://nominatim.openstreetmap.org/search"
+GEO_LOCALISATION = "https://api-adresse.data.gouv.fr/search/"
 
 
 # Set up initial map state
@@ -113,23 +113,27 @@ with one_ride:
                 # pickup parameters
                 params = {
                     'q': pickup_address,
-                    'format': 'json',
-                    'limit': 1
+                    'limit': 3
                 }
                 result = requests.get(GEO_LOCALISATION, params=params, headers=headers).json()
-                pickup_latitude = result[0]['lat'] #-73.950655
-                pickup_longitude = result[0]['lon']  # 40.783282
+                result = result.get('features')[0]
+                coord = result.get('geometry').get('coordinates')
+
+                pickup_latitude = coord[1] #-73.950655
+                pickup_longitude = coord[0] # 40.783282
 
                 # droppoff parameters
                 params = {
                     'q': dropoff_address,
-                    'format': 'json',
-                    'limit': 1
+                    'limit': 3
                 }
-                time.sleep(4)
+
                 result = requests.get(GEO_LOCALISATION, params=params, headers=headers).json()
-                dropoff_latitude = result[0]['lat'] #-73.984365
-                dropoff_longitude = result[0]['lon'] #40.769802
+                result = result.get('features')[0]
+                coord = result.get('geometry').get('coordinates')
+
+                dropoff_latitude = coord[1] #-73.984365
+                dropoff_longitude = coord[0] #40.769802
 
                 url = urllib.parse.urljoin(TAXI_FARE_API_URL, "/predict")
                 params = {
