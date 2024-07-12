@@ -7,6 +7,7 @@ import folium
 from folium.plugins import Draw, MeasureControl
 from streamlit_folium import st_folium
 import numpy as np
+import time
 
 
 def initialize_session_state():
@@ -60,7 +61,7 @@ def initialize_map(center, zoom):
 
 
 TAXI_FARE_API_URL = 'https://taxifare-mostefa-bbkf4aq3na-ew.a.run.app'
-GEO_LOCALISATION = "https://nominatim.openstreetmap.org"
+GEO_LOCALISATION = "https://nominatim.openstreetmap.org/search"
 
 
 # Set up initial map state
@@ -84,8 +85,8 @@ st.markdown(
 )
 
 headers = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:126.0) Gecko/20100101 Firefox/126.0",
-    "Accept-Language":"en-US"
+
+    "Accept-Language":"fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3"
 }
 
 with one_ride:
@@ -112,7 +113,8 @@ with one_ride:
                 # pickup parameters
                 params = {
                     'q': pickup_address,
-                    'format': 'json'
+                    'format': 'json',
+                    'limit': 1
                 }
                 result = requests.get(GEO_LOCALISATION, params=params, headers=headers).json()
                 pickup_latitude = result[0]['lat'] #-73.950655
@@ -121,8 +123,10 @@ with one_ride:
                 # droppoff parameters
                 params = {
                     'q': dropoff_address,
-                    'format': 'json'
+                    'format': 'json',
+                    'limit': 1
                 }
+                time.sleep(4)
                 result = requests.get(GEO_LOCALISATION, params=params, headers=headers).json()
                 dropoff_latitude = result[0]['lat'] #-73.984365
                 dropoff_longitude = result[0]['lon'] #40.769802
@@ -153,14 +157,14 @@ with one_ride:
                     fg.add_child(marker)
 
                 folium.Marker(
-                    location=[pickup_longitude, pickup_latitude],
+                    location=[pickup_latitude, pickup_longitude],
                     tooltip="Click me!",
                     popup="Départ",
                     icon=folium.Icon(icon="cloud"),
                 ).add_to(m)
 
                 folium.Marker(
-                    location=[dropoff_longitude, dropoff_latitude],
+                    location=[dropoff_latitude, dropoff_longitude],
                     tooltip="Click me!",
                     popup="Destination",
                     icon=folium.Icon(color="green"),
