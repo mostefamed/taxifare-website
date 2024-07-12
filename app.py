@@ -4,10 +4,11 @@ import urllib.parse
 import datetime
 import folium
 from streamlit_folium import st_folium
+from geopy.geocoders import Nominatim
 
-TAXI_FARE_API_URL = 'https://taxifare.lewagon.ai/predict'
-GEO_LOCALISATION = "https://api-adresse.data.gouv.fr/search/"
+TAXI_FARE_API_URL = 'https://taxifare.lewagon.ai'
 ZOOM_START = 5
+
 
 def css_style():
     st.markdown(
@@ -32,28 +33,22 @@ def tabs():
 
 def get_coordinates(pickup_address, dropoff_address):
 
-    params = {'q': pickup_address,'limit': 3 }
-    result = requests.get(GEO_LOCALISATION, params=params).json()
-    result = result.get('features')[0]
-    coord = result.get('geometry').get('coordinates')
+    pu = Nominatim(user_agent='pu')
+    pickup_coordinates = pu.geocode(pickup_address).raw
+    pickup_latitude = pickup_coordinates.get('lat')
+    pickup_longitude = pickup_coordinates.get('lon')
 
-    pickup_latitude = coord[1]
-    pickup_longitude = coord[0]
-
-    params = {'q': dropoff_address, 'limit': 3}
-
-    result = requests.get(GEO_LOCALISATION, params=params).json()
-    result = result.get('features')[0]
-    coord = result.get('geometry').get('coordinates')
-
-    dropoff_latitude = coord[1]
-    dropoff_longitude = coord[0]
+    do = Nominatim(user_agent='do')
+    dropoff_coordinates = do.geocode(dropoff_address).raw
+    dropoff_latitude = dropoff_coordinates.get('lat')
+    dropoff_longitude = dropoff_coordinates.get('lon')
 
     return pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude
 
 def perform_predict(d, t, pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude, passenger_count):
 
-    url = urllib.parse.urljoin(TAXI_FARE_API_URL, "/predict")
+    url = urllib.parse.urljoin(TAXI_FARE_API_URL, "predict")
+    st.write(url)
     params = {
         'pickup_datetime': f'{d} {t}',
         'pickup_longitude':  pickup_longitude,
@@ -64,6 +59,7 @@ def perform_predict(d, t, pickup_latitude, pickup_longitude, dropoff_latitude, d
     }
 
     result = requests.get(url, params=params).json()
+
     return round(result.get("fare"), 2)
 
 def draw_map(pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude):
