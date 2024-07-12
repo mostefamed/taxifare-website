@@ -1,4 +1,3 @@
-import random
 import streamlit as st
 import requests
 import urllib.parse
@@ -7,35 +6,6 @@ import folium
 from folium.plugins import Draw, MeasureControl
 from streamlit_folium import st_folium
 import numpy as np
-import time
-
-
-def initialize_session_state():
-    if "center" not in st.session_state:
-        st.session_state["center"] = CENTER_START
-    if "zoom" not in st.session_state:
-        st.session_state["zoom"] = ZOOM_START
-    if "markers" not in st.session_state:
-        st.session_state["markers"] = []
-    if "map_data" not in st.session_state:
-        st.session_state["map_data"] = {}
-    if "all_drawings" not in st.session_state["map_data"]:
-        st.session_state["map_data"]["all_drawings"] = None
-    if "upload_file_button" not in st.session_state:
-        st.session_state["upload_file_button"] = False
-
-
-
-
-def reset_session_state():
-    # Delete all the items in Session state besides center and zoom
-    for key in st.session_state.keys():
-        if key in ["center", "zoom"]:
-            continue
-        del st.session_state[key]
-    initialize_session_state()
-
-
 
 def initialize_map(center, zoom):
     m = folium.Map(location=center, zoom_start=zoom, scrollWheelZoom=False)
@@ -84,24 +54,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-headers = {
-
-    "Accept-Language":"fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3"
-}
-
 with one_ride:
     #st.header("Une course")
 
     with st.form("prediction_form"):
-        #st.write("Veuillez remplir les informations ci-dessous")
 
         d = st.date_input("C'est pour quand ?", datetime.date.today())
         t = st.time_input("À quel heure ?", value="now")
 
-
         pickup_address = st.text_input("Adresse de départ", '')
         dropoff_address = st.text_input("Adresse d'arrivée", '')
-
 
         passenger_count = st.number_input("Nombre de passager", min_value=1, max_value=7)
 
@@ -115,12 +77,14 @@ with one_ride:
                     'q': pickup_address,
                     'limit': 3
                 }
-                result = requests.get(GEO_LOCALISATION, params=params, headers=headers).json()
+                result = requests.get(GEO_LOCALISATION, params=params).json()
                 result = result.get('features')[0]
                 coord = result.get('geometry').get('coordinates')
 
                 pickup_latitude = coord[1] #-73.950655
                 pickup_longitude = coord[0] # 40.783282
+
+                CENTER_START = [pickup_latitude, pickup_longitude]
 
                 # droppoff parameters
                 params = {
@@ -128,7 +92,7 @@ with one_ride:
                     'limit': 3
                 }
 
-                result = requests.get(GEO_LOCALISATION, params=params, headers=headers).json()
+                result = requests.get(GEO_LOCALISATION, params=params).json()
                 result = result.get('features')[0]
                 coord = result.get('geometry').get('coordinates')
 
@@ -146,19 +110,11 @@ with one_ride:
 
                 }
 
-                result = requests.get(url, params=params, headers=headers).json()
+                result = requests.get(url, params=params).json()
                 amount = round(result.get("fare"), 2)
                 st.write(f'ça vous coute: :blue[{amount}$]')
 
-
-                initialize_session_state()
-
-                m = initialize_map(center=st.session_state["center"], zoom=st.session_state["zoom"])
-
-
-                fg = folium.FeatureGroup(name="Markers")
-                for marker in st.session_state["markers"]:
-                    fg.add_child(marker)
+                m = initialize_map(center=CENTER_START, zoom=ZOOM_START)
 
                 folium.Marker(
                     location=[pickup_latitude, pickup_longitude],
@@ -174,22 +130,17 @@ with one_ride:
                     icon=folium.Icon(color="green"),
                 ).add_to(m)
 
-                # Create the map and store interaction data inside of session state
-                map_data = st_folium(
+
+                st_folium(
                     m,
-                    center=st.session_state["center"],
-                    zoom=st.session_state["zoom"],
-                    feature_group_to_add=fg,
+                    center=CENTER_START,
+                    zoom=ZOOM_START,
                     key="new",
                     width=1285,
                     height=725,
                     returned_objects=["all_drawings"],
                     use_container_width=True
                 )
-                st.write("## map_data")
-                st.write(map_data)
-                st.write("## session_state")
-                st.write(st.session_state)
 
 
 
