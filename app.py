@@ -60,7 +60,7 @@ def initialize_map(center, zoom):
 
 
 
-TAXI_FARE_API_URL = 'https://taxifare-mostefa-bbkf4aq3na-ew.a.run.app'
+TAXI_FARE_API_URL = 'https://taxifare.lewagon.ai/predict'
 GEO_LOCALISATION = "https://api-adresse.data.gouv.fr/search/"
 
 
