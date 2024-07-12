@@ -1,11 +1,71 @@
+import random
 import streamlit as st
 import requests
 import urllib.parse
 import datetime
 import folium
+from folium.plugins import Draw, MeasureControl
+from streamlit_folium import st_folium
+import numpy as np
+
+
+def initialize_session_state():
+    if "center" not in st.session_state:
+        st.session_state["center"] = CENTER_START
+    if "zoom" not in st.session_state:
+        st.session_state["zoom"] = ZOOM_START
+    if "markers" not in st.session_state:
+        st.session_state["markers"] = []
+    if "map_data" not in st.session_state:
+        st.session_state["map_data"] = {}
+    if "all_drawings" not in st.session_state["map_data"]:
+        st.session_state["map_data"]["all_drawings"] = None
+    if "upload_file_button" not in st.session_state:
+        st.session_state["upload_file_button"] = False
+
+
+
+
+def reset_session_state():
+    # Delete all the items in Session state besides center and zoom
+    for key in st.session_state.keys():
+        if key in ["center", "zoom"]:
+            continue
+        del st.session_state[key]
+    initialize_session_state()
+
+
+
+def initialize_map(center, zoom):
+    m = folium.Map(location=center, zoom_start=zoom, scrollWheelZoom=False)
+    draw = Draw(export=False,
+                filename='custom_drawn_polygons.geojson',
+                position='topright',
+                draw_options={'polyline': False,  # disable polyline option
+                              'rectangle': False,  # disable rectangle option for now
+                              # enable polygon option
+                              #   'polygon': {'showArea': True, 'showLength': False, 'metric': False, 'feet': False},
+                              'polygon': False,  # disable rectangle option for now
+                              # enable circle option
+                              'circle': {'showArea': True, 'showLength': False, 'metric': False, 'feet': False},
+                              'circlemarker': False,  # disable circle marker option
+                              'marker': False,  # disable marker option
+                              },
+                edit_options={'poly': {'allowIntersection': False}})
+    draw.add_to(m)
+    MeasureControl(position='bottomleft', primary_length_unit='miles',
+                   secondary_length_unit='meters', primary_area_unit='sqmiles', secondary_area_unit=np.nan).add_to(m)
+    return m
+
+
 
 TAXI_FARE_API_URL = 'https://taxifare-mostefa-bbkf4aq3na-ew.a.run.app'
 GEO_LOCALISATION = "https://nominatim.openstreetmap.org"
+
+
+# Set up initial map state
+CENTER_START = [37.8, -96]
+ZOOM_START = 5
 
 st.header('Bienvenue chez RideEstimate 🛣️', divider='grey')
 st.write("Ne laissez pas l'incertitude vous ralentir, RideEstimate trace votre chemin 🚕")
@@ -55,8 +115,8 @@ with one_ride:
                     'format': 'json'
                 }
                 result = requests.get(GEO_LOCALISATION, params=params, headers=headers).json()
-                pickup_latitude = result[0]['lat']
-                pickup_longitude = result[0]['lon']
+                pickup_latitude = result[0]['lat'] #-73.950655
+                pickup_longitude = result[0]['lon']  # 40.783282
 
                 # droppoff parameters
                 params = {
@@ -64,8 +124,8 @@ with one_ride:
                     'format': 'json'
                 }
                 result = requests.get(GEO_LOCALISATION, params=params, headers=headers).json()
-                dropoff_latitude = result[0]['lat']
-                dropoff_longitude = result[0]['lon']
+                dropoff_latitude = result[0]['lat'] #-73.984365
+                dropoff_longitude = result[0]['lon'] #40.769802
 
                 url = urllib.parse.urljoin(TAXI_FARE_API_URL, "/predict")
                 params = {
@@ -82,22 +142,47 @@ with one_ride:
                 amount = round(result.get("fare"), 2)
                 st.write(f'ça vous coute: :blue[{amount}$]')
 
-                m = folium.Map(location=(45.5236, -122.6750))
+
+                initialize_session_state()
+
+                m = initialize_map(center=st.session_state["center"], zoom=st.session_state["zoom"])
+
+
+                fg = folium.FeatureGroup(name="Markers")
+                for marker in st.session_state["markers"]:
+                    fg.add_child(marker)
+
                 folium.Marker(
                     location=[pickup_longitude, pickup_latitude],
-                    tooltip="depart",
-                    popup="Mt. Hood Meadows",
+                    tooltip="Click me!",
+                    popup="Départ",
                     icon=folium.Icon(icon="cloud"),
                 ).add_to(m)
 
                 folium.Marker(
                     location=[dropoff_longitude, dropoff_latitude],
-                    tooltip="destination",
-                    popup="Timberline Lodge",
+                    tooltip="Click me!",
+                    popup="Destination",
                     icon=folium.Icon(color="green"),
                 ).add_to(m)
 
-                st.write(m)
+                # Create the map and store interaction data inside of session state
+                map_data = st_folium(
+                    m,
+                    center=st.session_state["center"],
+                    zoom=st.session_state["zoom"],
+                    feature_group_to_add=fg,
+                    key="new",
+                    width=1285,
+                    height=725,
+                    returned_objects=["all_drawings"],
+                    use_container_width=True
+                )
+                st.write("## map_data")
+                st.write(map_data)
+                st.write("## session_state")
+                st.write(st.session_state)
+
 
 
 
