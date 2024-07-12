@@ -48,7 +48,7 @@ def get_coordinates(pickup_address, dropoff_address):
 def perform_predict(d, t, pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude, passenger_count):
 
     url = urllib.parse.urljoin(TAXI_FARE_API_URL, "predict")
-    st.write(url)
+
     params = {
         'pickup_datetime': f'{d} {t}',
         'pickup_longitude':  pickup_longitude,
